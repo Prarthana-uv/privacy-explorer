@@ -14,7 +14,163 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      detected_trackers: {
+        Row: {
+          count: number
+          created_at: string
+          domain: string | null
+          id: string
+          risk_level: string
+          scan_id: string
+          tracker_category: string
+          tracker_name: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          domain?: string | null
+          id?: string
+          risk_level: string
+          scan_id: string
+          tracker_category: string
+          tracker_name: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          domain?: string | null
+          id?: string
+          risk_level?: string
+          scan_id?: string
+          tracker_category?: string
+          tracker_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detected_trackers_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "privacy_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_recommendations: {
+        Row: {
+          action_label: string
+          created_at: string
+          description: string
+          id: string
+          impact: string
+          is_completed: boolean
+          scan_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_label: string
+          created_at?: string
+          description: string
+          id?: string
+          impact: string
+          is_completed?: boolean
+          scan_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_label?: string
+          created_at?: string
+          description?: string
+          id?: string
+          impact?: string
+          is_completed?: boolean
+          scan_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_recommendations_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "privacy_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_scans: {
+        Row: {
+          ai_analysis: string | null
+          created_at: string
+          fingerprinting_scripts: number
+          id: string
+          privacy_score: number
+          scan_date: string
+          total_cookies: number
+          total_permissions: number
+          total_trackers: number
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          created_at?: string
+          fingerprinting_scripts?: number
+          id?: string
+          privacy_score?: number
+          scan_date?: string
+          total_cookies?: number
+          total_permissions?: number
+          total_trackers?: number
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          created_at?: string
+          fingerprinting_scripts?: number
+          id?: string
+          privacy_score?: number
+          scan_date?: string
+          total_cookies?: number
+          total_permissions?: number
+          total_trackers?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
