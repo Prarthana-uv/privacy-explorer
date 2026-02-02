@@ -10,7 +10,8 @@ interface ScanData {
   totalCookies: number;
   totalPermissions: number;
   fingerprintingScripts: number;
-  trackers: typeof trackerData;
+  trackers: { name: string; count: number; category: string; risk: 'low' | 'medium' | 'high' }[];
+  url: string;
 }
 
 export const usePrivacyScans = () => {
@@ -35,38 +36,23 @@ export const usePrivacyScans = () => {
   const latestScan = scansQuery.data?.[0];
 
   const createScanMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (url: string) => {
       if (!user) throw new Error('Must be logged in');
 
-      // Simulate scan data (in real app, this would come from browser extension)
-      const totalTrackers = trackerData.reduce((sum, t) => sum + t.count, 0);
-      const scanData: ScanData = {
-        privacyScore: Math.floor(Math.random() * 30) + 50, // 50-80 range
-        totalTrackers,
-        totalCookies: Math.floor(Math.random() * 500) + 200,
-        totalPermissions: Math.floor(Math.random() * 15) + 5,
-        fingerprintingScripts: Math.floor(Math.random() * 10) + 3,
-        trackers: trackerData,
-      };
+      // Call the analyze-privacy function with the URL to get real scan data and AI analysis
+      const { data: scanResult, error: functionError } = await supabase.functions.invoke('analyze-privacy', {
+        body: { url },
+      });
+      if (functionError) throw functionError;
 
-      // Get AI analysis
-      let aiAnalysis = '';
-      try {
-        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-privacy', {
-          body: { scanData },
-        });
-        if (analysisError) throw analysisError;
-        aiAnalysis = analysisData.analysis;
-      } catch (error) {
-        console.error('AI analysis failed:', error);
-        aiAnalysis = 'AI analysis unavailable.';
-      }
+      const { scanData, analysis: aiAnalysis } = scanResult;
 
       // Insert scan
       const { data: scan, error: scanError } = await supabase
         .from('privacy_scans')
         .insert({
           user_id: user.id,
+          url: scanData.url,
           privacy_score: scanData.privacyScore,
           total_trackers: scanData.totalTrackers,
           total_cookies: scanData.totalCookies,

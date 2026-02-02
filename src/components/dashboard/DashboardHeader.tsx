@@ -1,20 +1,27 @@
 import { Shield, RefreshCw, Download, Settings, LogOut, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrivacyScans } from '@/hooks/usePrivacyScans';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const DashboardHeader = () => {
   const { user, signOut, loading } = useAuth();
   const { runScan, isScanning } = usePrivacyScans();
   const navigate = useNavigate();
+  const [scanUrl, setScanUrl] = useState('');
 
   const handleScan = () => {
     if (!user) {
       navigate('/auth');
       return;
     }
-    runScan();
+    if (!scanUrl.trim()) {
+      alert('Please enter a URL to scan.');
+      return;
+    }
+    runScan(scanUrl);
   };
 
   return (
@@ -36,6 +43,13 @@ const DashboardHeader = () => {
       <div className="flex items-center gap-3">
         {user && (
           <>
+            <Input
+              type="url"
+              placeholder="Enter website URL to scan (e.g., https://example.com)"
+              value={scanUrl}
+              onChange={(e) => setScanUrl(e.target.value)}
+              className="min-w-[300px]"
+            />
             <Button 
               variant="outline" 
               size="sm"

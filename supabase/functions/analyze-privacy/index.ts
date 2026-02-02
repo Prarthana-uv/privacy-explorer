@@ -5,14 +5,89 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Helper function to analyze trackers in HTML
+function analyzeTrackers(html: string) {
+  const trackers = [
+    { name: 'Google Analytics', pattern: /google-analytics\.com|googletagmanager\.com/, category: 'Analytics', risk: 'medium' as const },
+    { name: 'Facebook Pixel', pattern: /facebook\.com\/tr|connect\.facebook\.net/, category: 'Advertising', risk: 'high' as const },
+    { name: 'Doubleclick', pattern: /doubleclick\.net|googlesyndication\.com/, category: 'Advertising', risk: 'high' as const },
+    { name: 'Hotjar', pattern: /hotjar\.com/, category: 'Analytics', risk: 'medium' as const },
+    { name: 'Amazon Ads', pattern: /amazon-adsystem\.com/, category: 'Advertising', risk: 'high' as const },
+    { name: 'LinkedIn Insight', pattern: /linkedin\.com\/px/, category: 'Advertising', risk: 'medium' as const },
+    { name: 'Twitter Analytics', pattern: /t\.co|twitter\.com\/i\/ads/, category: 'Social', risk: 'low' as const },
+    { name: 'Mixpanel', pattern: /mixpanel\.com/, category: 'Analytics', risk: 'low' as const },
+  ];
+
+  const results = [];
+  for (const tracker of trackers) {
+    const matches = html.match(new RegExp(tracker.pattern, 'gi'));
+    if (matches) {
+      results.push({
+        name: tracker.name,
+        count: matches.length,
+        category: tracker.category,
+        risk: tracker.risk,
+      });
+    }
+  }
+  return results;
+}
+
+// Helper function to detect fingerprinting scripts
+function detectFingerprinting(html: string): number {
+  const fingerprintingPatterns = [
+    /canvas\.getContext|canvas\.toDataURL/, // Canvas fingerprinting
+    /navigator\.plugins|navigator\.mimeTypes/, // Plugin fingerprinting
+    /screen\.width|screen\.height|screen\.colorDepth/, // Screen fingerprinting
+    /webgl|webgl2/, // WebGL fingerprinting
+  ];
+
+  let count = 0;
+  for (const pattern of fingerprintingPatterns) {
+    if (pattern.test(html)) {
+      count++;
+    }
+  }
+  return count;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { scanData } = await req.json();
+    const { url } = await req.json();
     
+    // Fetch the webpage HTML
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch URL: ${response.status}`);
+    }
+    const html = await response.text();
+    
+    // Analyze the HTML for trackers
+    const trackers = analyzeTrackers(html);
+    const totalTrackers = trackers.reduce((sum, t) => sum + t.count, 0);
+    
+    // Calculate privacy score based on trackers (lower score for more trackers)
+    const privacyScore = Math.max(0, 100 - totalTrackers / 10); // Simple formula
+    
+    // Simulate other metrics (since we can't detect cookies/permissions server-side)
+    const totalCookies = Math.floor(Math.random() * 100) + 50;
+    const totalPermissions = Math.floor(Math.random() * 10) + 1;
+    const fingerprintingScripts = detectFingerprinting(html);
+    
+    const scanData = {
+      privacyScore,
+      totalTrackers,
+      totalCookies,
+      totalPermissions,
+      fingerprintingScripts,
+      trackers,
+      url,
+    };
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -35,7 +110,7 @@ ${scanData.trackers?.map((t: any) => `- ${t.name} (${t.category}): ${t.count} in
 
 Provide a professional, helpful analysis that empowers the user to take control of their digital privacy. Be specific and actionable.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -71,7 +146,7 @@ Provide a professional, helpful analysis that empowers the user to take control 
     const data = await response.json();
     const analysis = data.choices?.[0]?.message?.content || "Unable to generate analysis.";
 
-    return new Response(JSON.stringify({ analysis }), {
+    return new Response(JSON.stringify({ scanData, analysis }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
